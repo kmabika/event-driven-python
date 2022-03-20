@@ -12,11 +12,9 @@ def transform_jhp_data(data) -> pd.DataFrame:
         data (pd.DataFrame): john hopkins csv data
 
     Returns:
-        pd.DataFrame: sorted john hopkins data
+        jhp_data: sorted john hopkins dataframe
     """
     try:
-        logger.info('Starting nyt transformation')
-
         df = data
         df = df.fillna(0)
         sa_data = df.loc[df['Country/Region'] == 'US']
@@ -26,9 +24,7 @@ def transform_jhp_data(data) -> pd.DataFrame:
         sorted_data['recovered'] = pd.to_numeric(sorted_data['Recovered'], downcast='integer')
         jhp_data = sorted_data[['datetime', 'recovered']]
     except (Exception) as err:
-        notify.alert("Error in Transforming jhp data")
         logger.error('Error in the transforming jhp process', err)
-    logger.info('jhp transformation completed completed')
     return jhp_data
 
 
@@ -39,11 +35,9 @@ def transform_nyt_data(data) -> pd.DataFrame:
         data (pd.Dataframe): dsfi csv data
 
     Returns:
-        pd.DataFrame: sorted data dsfi data
+        nyt_data: sorted data nyt dataframe
     """
     try:
-        logger.info('Starting dsfi transformation')
-
         df = data
         df = df.fillna(0)
         sorted_data = df.sort_index(ascending=False)
@@ -52,22 +46,31 @@ def transform_nyt_data(data) -> pd.DataFrame:
         sorted_data['cases'] = pd.to_numeric(sorted_data['cases'], downcast='integer')
         nyt_data = sorted_data[['datetime', 'deaths','cases']]
     except (Exception) as err:
-        # notify.alert("Error in Transforming dsfi data")
         logger.error('Error in the transforming dsfi process', err)
-    logger.info('dsfi transformation completed completed')
     return nyt_data
 
-def transofrm_join_data(nyt_data,jhp_data) -> pd.DataFrame:
-    """_summary_
+def transform(data) -> pd.DataFrame:
+    """merge nyt and jhp data
 
     Args:
-        nyt_data (_type_): _description_
-        jhp_data (_type_): _description_
+        data['nyt_data'] (pd.DataFrame): _description_
+        data['jhp_data'] (pd.DataFrame): _description_
 
     Returns:
-        pd.DataFrame: _description_
+        covid_df: combined covid 19 dataframe
     """
-    nyt_data = nyt_data
-    jhp_data = jhp_data
-    covid_df = pd.merge(nyt_data, jhp_data, on='datetime', how='inner')
+    try:
+        logger.info('Starting transformation')
+
+        nyt_data = transform_nyt_data(data['nyt_data'])
+        jhp_data = transform_jhp_data(data['jhp_data'])
+        covid_df = pd.merge(nyt_data, jhp_data, on='datetime', how='inner')
+        
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+            print(covid_df)
+
+    except (Exception) as err:
+        notify.alert("Error in Transforming jhp data")
+        logger.error('Error in the transforming dsfi process', err)
+    logger.info('transformation process completed')
     return covid_df
